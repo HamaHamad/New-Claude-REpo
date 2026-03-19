@@ -1,0 +1,284 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// NOTE: This schema requires PostgreSQL.
+// SQLite (file:./dev.db) will NOT work — the schema uses JSON fields
+// and other PostgreSQL-specific features.
+// Free options: https://neon.tech or https://supabase.com
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// AUTH / USERS
+// ─────────────────────────────────────────────────────────────
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  name           String?
+  password       String
+  role           String   @default("attorney")
+  firm           String?
+  organizationId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cases            Case[]
+  documents        Document[]
+  forms            Form[]
+  chatSessions     ChatSession[]
+  aiDrafts         AiDraft[]
+  organization     Organization? @relation(fields: [organizationId], references: [id])
+}
+
+// ─────────────────────────────────────────────────────────────
+// ORGANIZATIONS
+// ─────────────────────────────────────────────────────────────
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  domain    String?
+  createdAt DateTime @default(now())
+
+  users User[]
+  cases Case[]
+}
+
+// ─────────────────────────────────────────────────────────────
+// CASES
+// ─────────────────────────────────────────────────────────────
+model Case {
+  id             String  @id @default(uuid())
+  userId         String
+  organizationId String?
+
+  caseType     String  @default("employment")
+  visaCategory String
+  currentStage String  @default("Intake")
+  status       String  @default("active")
+
+  applicantName    String
+  applicantEmail   String?
+  petitionerName   String?
+  petitionerType   String?
+
+  approvalProbabilityScore  Float    @default(0)
+  estimatedProcessingTime   Int?
+  estimatedCompletionDate   DateTime?
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization?  @relation(fields: [organizationId], references: [id])
+  timelineEvents TimelineEvent[]
+  checklistItems ChecklistItem[]
+  deadlineEvents DeadlineEvent[]
+  documents      Document[]
+  forms          Form[]
+  aiDrafts       AiDraft[]
+}
+
+// ─────────────────────────────────────────────────────────────
+// TIMELINE EVENTS
+// ─────────────────────────────────────────────────────────────
+model TimelineEvent {
+  id               String   @id @default(uuid())
+  caseId           String
+  case             Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  eventType        String
+  title            String
+  description      String
+  eventDate        DateTime @default(now())
+  isAutomated      Boolean  @default(false)
+  notificationSent Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+}
+
+// ─────────────────────────────────────────────────────────────
+// CHECKLIST ITEMS
+// ─────────────────────────────────────────────────────────────
+model ChecklistItem {
+  id         String   @id @default(uuid())
+  caseId     String
+  case       Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  itemLabel  String
+  category   String   @default("document")
+  formCode   String?
+  required   Boolean  @default(true)
+  completed  Boolean  @default(false)
+  documentId String?
+  dueDate    DateTime?
+  sortOrder  Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────────
+// DEADLINE EVENTS
+// ─────────────────────────────────────────────────────────────
+model DeadlineEvent {
+  id           String   @id @default(uuid())
+  caseId       String
+  case         Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  deadlineType String
+  title        String
+  description  String?
+  dueDate      DateTime
+  completed    Boolean  @default(false)
+  alertDays    Int      @default(14)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────────
+// DOCUMENTS
+// ─────────────────────────────────────────────────────────────
+model Document {
+  id              String   @id @default(uuid())
+  caseId          String
+  userId          String
+  checklistItemId String?
+
+  documentType       String
+  originalName       String
+  mimeType           String
+  fileSizeBytes      Int      @default(0)
+  fileUrl            String
+
+  verificationStatus String   @default("pending")
+  verifiedAt         DateTime?
+  expiryDate         DateTime?
+
+  extractedFields String?
+  ocrText         String?
+  aiSummary       String?
+  completenessScore Int?
+  flags           String?
+
+  uploadedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ─────────────────────────────────────────────────────────────
+// FORMS
+// ─────────────────────────────────────────────────────────────
+model Form {
+  id                   String   @id @default(uuid())
+  caseId               String
+  userId               String
+  formType             String
+  completionPercentage Int      @default(0)
+  currentSection       Int      @default(0)
+  status               String   @default("draft")
+  fieldData            String   @default("{}")
+  lastSavedAt          DateTime @default(now())
+  submittedAt          DateTime?
+  exportedAt           DateTime?
+  exportFormat         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ─────────────────────────────────────────────────────────────
+// CHAT SESSIONS
+// ─────────────────────────────────────────────────────────────
+model ChatSession {
+  id         String   @id @default(uuid())
+  userId     String?
+  caseId     String?
+  language   String   @default("en")
+  title      String?
+  messages   String   @default("[]")
+  intakeData String   @default("{}")
+  resolved   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+// ─────────────────────────────────────────────────────────────
+// RFE DRAFTS
+// ─────────────────────────────────────────────────────────────
+model AiDraft {
+  id              String   @id @default(uuid())
+  caseId          String
+  userId          String
+
+  draftType       String
+  title           String
+
+  rfeText         String?
+  rfeGrounds      String?
+  rfeDeadline     DateTime?
+
+  content         String
+  contentSections String?
+  confidenceScore Int      @default(0)
+
+  status            String   @default("draft")
+  reviewedByUser    Boolean  @default(false)
+  userEdits         String?
+  reviewNotes       String?
+
+  exportedAt    DateTime?
+  exportFormat  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ─────────────────────────────────────────────────────────────
+// REGULATORY ALERTS
+// ─────────────────────────────────────────────────────────────
+// alert_type: fee_change | policy_update | processing_time |
+//             cap_season | form_change | travel_ban | premium_processing | general
+// severity:   critical | high | medium | low | info
+// source:     uscis_news | federal_register | uscis_policy | dhs | state_dept | manual
+model RegulatoryAlert {
+  id          String   @id @default(uuid())
+
+  alertType   String   // fee_change | policy_update | cap_season | form_change | general
+  severity    String   @default("medium")  // critical | high | medium | low | info
+  title       String
+  summary     String   // AI-generated plain-language summary
+  fullContent String?  // raw article/feed content
+  sourceUrl   String?
+  sourceName  String   @default("USCIS")
+
+  // Which visa categories / case types this affects
+  affectedVisaTypes String  @default("[]")  // JSON array of visa category strings
+  affectsAllCases   Boolean @default(false)
+
+  // Dedup — store the feed item GUID/link so we never insert twice
+  externalId  String?  @unique
+
+  // Lifecycle
+  fetchedAt   DateTime @default(now())
+  publishedAt DateTime?
+  dismissedAt DateTime?  // null = active, set = dismissed globally
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
