@@ -5,142 +5,171 @@ import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Scale, Mail, Lock, ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 
 function LoginForm() {
   const router = useRouter()
   const params = useSearchParams()
   const callbackUrl = params.get('callbackUrl') ?? '/dashboard'
+  const isDemoMode  = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
 
-  const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
-  const [email, setEmail]       = useState(isDemoMode ? 'demo@immigai.com' : '')
+  const [email,    setEmail]    = useState(isDemoMode ? 'demo@immigai.com' : '')
   const [password, setPassword] = useState(isDemoMode ? 'demo1234' : '')
   const [showPass, setShowPass] = useState(false)
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState('')
+  const [loading,  setLoading]  = useState(false)
+  const [error,    setError]    = useState('')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setLoading(true)
-
-    const result = await signIn('credentials', {
-      email,
-      password,
-      redirect: false,
-      callbackUrl,
-    })
-
+    const result = await signIn('credentials', { email, password, redirect: false, callbackUrl })
     setLoading(false)
-
     if (result?.error) {
       setError('Invalid email or password. Please try again.')
     } else {
       router.push(callbackUrl)
+      router.refresh()
     }
   }
 
   return (
-    <div className="min-h-screen bg-[#0d1117] flex items-center justify-center p-4 grid-bg">
-      <div className="hero-glow left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-30 pointer-events-none" />
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{ background: 'var(--bg)', fontFamily: 'var(--font-body)' }}
+    >
+      {/* Background blob */}
+      <div
+        className="fixed pointer-events-none"
+        style={{
+          width: '600px', height: '600px',
+          background: 'radial-gradient(circle, rgba(10,145,97,0.08) 0%, transparent 65%)',
+          top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+          borderRadius: '50%', filter: 'blur(60px)',
+        }}
+      />
 
-      <div className="w-full max-w-sm relative z-10">
+      <div className="w-full max-w-[400px] relative z-10">
+        {/* Logo */}
         <div className="flex flex-col items-center mb-8">
           <Link href="/" className="flex items-center gap-2.5 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center shadow-glow">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ background: 'var(--brand)', boxShadow: 'var(--shadow-brand)' }}
+            >
               <Scale className="w-5 h-5 text-white" />
             </div>
-            <span className="font-display font-bold text-white text-xl">ImmigAI</span>
+            <span className="font-display font-bold text-xl" style={{ color: 'var(--text-1)', letterSpacing: '-0.04em' }}>
+              ImmigAI
+            </span>
           </Link>
-          <h1 className="font-display font-bold text-2xl text-white text-center">Welcome back</h1>
-          <p className="text-slate-500 text-sm mt-1 text-center">Sign in to your account</p>
+          <h1 className="font-display font-bold text-2xl text-center" style={{ color: 'var(--text-1)', letterSpacing: '-0.04em' }}>
+            Welcome back
+          </h1>
+          <p className="text-sm mt-1 text-center" style={{ color: 'var(--text-3)' }}>
+            Sign in to your account to continue
+          </p>
         </div>
 
-        <div className="card p-6 shadow-[0_0_60px_rgba(0,0,0,0.4)]">
+        {/* Card */}
+        <div className="card p-7" style={{ boxShadow: 'var(--shadow-lg)' }}>
+
+          {/* Demo banner */}
           {isDemoMode && (
-          <div className="flex items-start gap-2.5 p-3 rounded-lg bg-brand-500/[0.06] border border-brand-500/20 mb-5">
-            <AlertCircle className="w-4 h-4 text-brand-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs font-medium text-brand-400 mb-0.5">Demo credentials pre-filled</p>
-              <p className="text-[11px] text-slate-500">
-                email: demo@immigai.com<br />
-                password: demo1234
-              </p>
+            <div
+              className="flex items-start gap-2.5 p-3.5 rounded-xl mb-6"
+              style={{ background: 'var(--brand-dim)', border: '1px solid var(--brand-glow)' }}
+            >
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--brand)' }} />
+              <div>
+                <p className="text-xs font-bold mb-0.5" style={{ color: 'var(--brand)' }}>Demo credentials pre-filled</p>
+                <p className="text-xs" style={{ color: 'var(--text-3)' }}>
+                  email: demo@immigai.com &nbsp;·&nbsp; password: demo1234
+                </p>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Error */}
+          {error && (
+            <div
+              className="flex items-center gap-2.5 p-3.5 rounded-xl mb-5"
+              style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)' }}
+            >
+              <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--danger)' }} />
+              <p className="text-sm font-medium" style={{ color: 'var(--danger)' }}>{error}</p>
+            </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Email address</Label>
+            {/* Email */}
+            <div>
+              <label className="block text-xs font-bold mb-1.5" style={{ color: 'var(--text-2)' }}>
+                Email address
+              </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 pointer-events-none" />
-                <Input
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--text-4)' }} />
+                <input
                   id="email"
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="pl-9"
-                  placeholder="you@firm.com"
                   required
                   autoComplete="email"
+                  placeholder="you@example.com"
+                  className="input pl-10"
                 />
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
+            {/* Password */}
+            <div>
+              <label className="block text-xs font-bold mb-1.5" style={{ color: 'var(--text-2)' }}>
+                Password
+              </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 pointer-events-none" />
-                <Input
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--text-4)' }} />
+                <input
                   id="password"
                   type={showPass ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="pl-9 pr-10"
-                  placeholder="••••••••"
                   required
                   autoComplete="current-password"
+                  placeholder="Your password"
+                  className="input pl-10 pr-10"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPass(p => !p)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-400 transition-colors"
+                  onClick={() => setShowPass(!showPass)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2"
+                  style={{ color: 'var(--text-4)' }}
                 >
                   {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
-            {error && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                {error}
-              </div>
-            )}
-
-            <Button type="submit" disabled={loading} className="w-full mt-2" size="lg">
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary w-full justify-center py-3 text-sm mt-2"
+              style={{ opacity: loading ? 0.7 : 1 }}
+            >
               {loading ? (
                 <span className="flex items-center gap-2">
-                  <span className="w-4 h-4 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Signing in…
                 </span>
               ) : (
-                <span className="flex items-center gap-2">
-                  Sign In <ArrowRight className="w-4 h-4" />
-                </span>
+                <>Sign In <ArrowRight className="w-4 h-4" /></>
               )}
-            </Button>
+            </button>
           </form>
         </div>
 
-        <p className="text-center text-slate-600 text-xs mt-6">
-          © 2024 ImmigAI ·
-          <Link href="/" className="hover:text-slate-400 transition-colors ml-1">
-            Back to home
-          </Link>
+        <p className="text-center text-xs mt-6" style={{ color: 'var(--text-4)' }}>
+          © {new Date().getFullYear()} ImmigAI, Inc. · All rights reserved.
         </p>
       </div>
     </div>
@@ -148,9 +177,5 @@ function LoginForm() {
 }
 
 export default function LoginPage() {
-  return (
-    <Suspense>
-      <LoginForm />
-    </Suspense>
-  )
+  return <Suspense><LoginForm /></Suspense>
 }

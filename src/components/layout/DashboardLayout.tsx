@@ -5,9 +5,8 @@ import { signOut, useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
 import {
   LayoutDashboard, FolderOpen, FileText, BarChart3, Shield,
-  Users, Settings, Scale, Bell, Search, LogOut,
-  Globe, Plus, FileCheck, MessageSquare, Menu, X,
-  Sun, Moon
+  Users, Settings, Bell, Search, LogOut,
+  FileCheck, MessageSquare, Menu, X, Sun, Moon, Plus, Scale,
 } from 'lucide-react'
 
 const NAV = [
@@ -21,76 +20,108 @@ const NAV = [
   { label: 'Clients',   href: '/clients',     icon: Users           },
 ]
 
-const NAV2 = [
-  { label: 'Settings', href: '/settings', icon: Settings },
-]
-
 function NavItem({ item, onClick }: { item: typeof NAV[0]; onClick?: () => void }) {
   const pathname = usePathname()
-  const active = pathname === item.href || pathname.startsWith(item.href + '/')
-  const Icon = item.icon
+  const active   = pathname === item.href || pathname.startsWith(item.href + '/')
+  const Icon     = item.icon
   return (
-    <Link href={item.href} onClick={onClick}
-      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group
+    <Link
+      href={item.href}
+      onClick={onClick}
+      style={active ? {
+        background: 'var(--brand-dim)',
+        color: 'var(--brand)',
+        border: '1px solid var(--brand-glow)',
+        borderRadius: '10px',
+      } : {
+        borderRadius: '10px',
+        border: '1px solid transparent',
+      }}
+      className={`flex items-center gap-3 px-3 py-2.5 text-sm font-semibold transition-all duration-150 group
         ${active
-          ? 'bg-brand-600/15 text-brand-600 dark:text-brand-400 border border-brand-500/20'
-          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.04]'}`}>
-      <Icon className={`w-4 h-4 flex-shrink-0 transition-colors
-        ${active ? 'text-brand-600 dark:text-brand-400' : 'text-slate-400 dark:text-slate-600 group-hover:text-slate-600 dark:group-hover:text-slate-400'}`} />
+          ? ''
+          : 'text-[var(--text-3)] hover:text-[var(--text-1)] hover:bg-[var(--bg-subtle)]'
+        }`}
+    >
+      <Icon
+        className="w-4 h-4 flex-shrink-0 transition-colors"
+        style={{ color: active ? 'var(--brand)' : undefined }}
+      />
       {item.label}
     </Link>
   )
 }
 
-function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
+function Sidebar({ onNavClick }: { onNavClick?: () => void }) {
   const { data: session } = useSession()
-  const name = session?.user?.name ?? 'User'
+  const name     = session?.user?.name ?? 'User'
+  const email    = session?.user?.email ?? ''
   const initials = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
 
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="h-14 flex items-center px-5 border-b border-slate-200 dark:border-white/[0.06]">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center">
+      <div className="h-14 flex items-center px-5" style={{ borderBottom: '1px solid var(--border)' }}>
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--brand)' }}>
             <Scale className="w-3.5 h-3.5 text-white" />
           </div>
-          <span className="font-display font-bold text-slate-900 dark:text-white text-base">ImmigAI</span>
+          <span className="font-display font-bold text-base" style={{ color: 'var(--text-1)' }}>
+            ImmigAI
+          </span>
         </Link>
       </div>
 
-      {/* New case CTA */}
-      <div className="px-3 py-3 border-b border-slate-200 dark:border-white/[0.06]">
-        <Link href="/case/create" onClick={onNavClick}
-          className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-brand-600/20 hover:bg-brand-600/30 border border-brand-500/25 text-brand-600 dark:text-brand-400 text-sm font-medium transition-all">
-          <Plus className="w-4 h-4" />
+      {/* New Case CTA */}
+      <div className="px-3 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
+        <Link
+          href="/case/create"
+          onClick={onNavClick}
+          className="btn-primary w-full justify-center text-xs py-2"
+        >
+          <Plus className="w-3.5 h-3.5" />
           New Case
         </Link>
       </div>
 
-      {/* Nav */}
+      {/* Navigation */}
       <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
-        {NAV.map(item => <NavItem key={item.href} item={item} onClick={onNavClick} />)}
-        <div className="pt-3 mt-3 border-t border-slate-200 dark:border-white/[0.05] space-y-0.5">
-          {NAV2.map(item => <NavItem key={item.href} item={item} onClick={onNavClick} />)}
+        {NAV.map(item => (
+          <NavItem key={item.href} item={item} onClick={onNavClick} />
+        ))}
+        <div className="pt-3 mt-3 space-y-0.5" style={{ borderTop: '1px solid var(--border)' }}>
+          <NavItem item={{ label: 'Settings', href: '/settings', icon: Settings }} onClick={onNavClick} />
         </div>
       </nav>
 
-      {/* User */}
-      <div className="p-3 border-t border-slate-200 dark:border-white/[0.06] space-y-1">
+      {/* User footer */}
+      <div className="p-3" style={{ borderTop: '1px solid var(--border)' }}>
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-500 dark:text-slate-600 hover:text-rose-600 dark:hover:text-rose-400 transition-colors text-sm">
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors mb-1"
+          style={{ color: 'var(--text-3)' }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLElement).style.color = 'var(--danger)'
+            ;(e.currentTarget as HTMLElement).style.background = 'rgba(220,38,38,0.06)'
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLElement).style.color = 'var(--text-3)'
+            ;(e.currentTarget as HTMLElement).style.background = 'transparent'
+          }}
+        >
           <LogOut className="w-4 h-4" />
           Sign out
         </button>
-        <div className="flex items-center gap-3 px-3 py-2">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-500 to-violet-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+        <div className="flex items-center gap-2.5 px-3 py-2">
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg, var(--brand) 0%, #2563EB 100%)' }}
+          >
             {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-slate-900 dark:text-white text-xs font-medium truncate">{name}</div>
-            <div className="text-slate-400 dark:text-slate-600 text-[10px] truncate">{(session?.user as any)?.role ?? 'attorney'}</div>
+            <div className="text-xs font-semibold truncate" style={{ color: 'var(--text-1)' }}>{name}</div>
+            <div className="text-[10px] truncate" style={{ color: 'var(--text-4)' }}>{email}</div>
           </div>
         </div>
       </div>
@@ -100,108 +131,119 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [isDark, setIsDark] = useState(false)
+  const [isDark, setIsDark]           = useState(false)
+  const pathname = usePathname()
 
-  // Light mode default — initialize from localStorage or default to light
   useEffect(() => {
     const saved = localStorage.getItem('theme')
-    if (saved === 'dark') {
-      setIsDark(true)
-      document.documentElement.classList.add('dark')
-    } else {
-      setIsDark(false)
-      document.documentElement.classList.remove('dark')
-    }
+    if (saved === 'dark') { setIsDark(true); document.documentElement.classList.add('dark') }
+    else { setIsDark(false); document.documentElement.classList.remove('dark') }
   }, [])
+
+  useEffect(() => { setSidebarOpen(false) }, [pathname])
 
   function toggleTheme() {
     const next = !isDark
     setIsDark(next)
-    if (next) {
-      document.documentElement.classList.add('dark')
-      localStorage.setItem('theme', 'dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-      localStorage.setItem('theme', 'light')
-    }
+    document.documentElement.classList.toggle('dark', next)
+    localStorage.setItem('theme', next ? 'dark' : 'light')
   }
 
-  // Close sidebar on route change
-  const pathname = usePathname()
-  useEffect(() => { setSidebarOpen(false) }, [pathname])
-
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-[#0d1117] overflow-hidden">
+    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg)' }}>
 
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 lg:hidden"
+          style={{ background: 'rgba(16,19,26,0.6)', backdropFilter: 'blur(4px)' }}
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar — hidden on mobile, slide in when open */}
-      <aside className={`
-        fixed inset-y-0 left-0 z-50 w-60 flex-shrink-0
-        bg-white dark:bg-[#0d1117]
-        border-r border-slate-200 dark:border-white/[0.06]
-        transform transition-transform duration-300 ease-in-out
-        lg:relative lg:translate-x-0 lg:flex lg:flex-col
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-      `}>
-        {/* Mobile close button */}
+      {/* Sidebar */}
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-50 w-[220px] flex-shrink-0
+          transform transition-transform duration-300 ease-in-out
+          lg:relative lg:translate-x-0 lg:flex lg:flex-col
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+        style={{ background: 'var(--bg-card)', borderRight: '1px solid var(--border)' }}
+      >
         <button
-          className="absolute top-3 right-3 lg:hidden p-1.5 rounded-lg text-slate-500 hover:bg-slate-100"
-          onClick={() => setSidebarOpen(false)}>
+          className="absolute top-3 right-3 lg:hidden p-1.5 rounded-lg transition-colors"
+          style={{ color: 'var(--text-3)' }}
+          onClick={() => setSidebarOpen(false)}
+        >
           <X className="w-4 h-4" />
         </button>
-        <SidebarContent onNavClick={() => setSidebarOpen(false)} />
+        <Sidebar onNavClick={() => setSidebarOpen(false)} />
       </aside>
 
-      {/* Main */}
+      {/* Main area */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        {/* Top bar */}
-        <header className="h-14 border-b border-slate-200 dark:border-white/[0.06] flex items-center px-4 gap-3 bg-white dark:bg-[#0d1117] flex-shrink-0">
 
-          {/* Hamburger — mobile only */}
+        {/* Topbar */}
+        <header
+          className="h-14 flex items-center px-4 gap-3 flex-shrink-0"
+          style={{ background: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}
+        >
           <button
-            className="lg:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
-            onClick={() => setSidebarOpen(true)}>
+            className="lg:hidden p-2 rounded-lg transition-colors"
+            style={{ color: 'var(--text-3)' }}
+            onClick={() => setSidebarOpen(true)}
+          >
             <Menu className="w-5 h-5" />
           </button>
 
           {/* Search */}
-          <div className="flex-1 max-w-md">
+          <div className="flex-1 max-w-sm">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-4)' }} />
               <input
                 type="text"
-                placeholder="Search cases, clients..."
-                className="w-full bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.07] rounded-lg pl-9 pr-4 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-brand-500/40 transition-colors"
+                placeholder="Search cases, clients…"
+                className="w-full rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none transition-all"
+                style={{
+                  background: 'var(--bg-subtle)',
+                  border: '1.5px solid var(--border)',
+                  color: 'var(--text-1)',
+                  fontFamily: 'var(--font-body)',
+                }}
+                onFocus={e => {
+                  (e.target as HTMLElement).style.borderColor = 'var(--brand)'
+                  ;(e.target as HTMLElement).style.boxShadow = '0 0 0 3px var(--brand-dim)'
+                }}
+                onBlur={e => {
+                  (e.target as HTMLElement).style.borderColor = 'var(--border)'
+                  ;(e.target as HTMLElement).style.boxShadow = 'none'
+                }}
               />
             </div>
           </div>
 
-          {/* Right actions */}
           <div className="flex items-center gap-2 ml-auto">
             {/* Theme toggle */}
             <button
               onClick={toggleTheme}
-              className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/[0.04] hover:bg-slate-200 dark:hover:bg-white/[0.07] flex items-center justify-center transition-colors"
-              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
+              className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+              style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)' }}
+              title={isDark ? 'Light mode' : 'Dark mode'}
+            >
               {isDark
-                ? <Sun className="w-4 h-4 text-amber-400" />
-                : <Moon className="w-4 h-4 text-slate-500" />}
+                ? <Sun  className="w-4 h-4" style={{ color: '#FBBF24' }} />
+                : <Moon className="w-4 h-4" style={{ color: 'var(--text-3)' }} />
+              }
             </button>
 
-            <button className="relative w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/[0.04] hover:bg-slate-200 dark:hover:bg-white/[0.07] flex items-center justify-center transition-colors">
-              <Bell className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-brand-500" />
-            </button>
-
-            <button className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/[0.04] hover:bg-slate-200 dark:hover:bg-white/[0.07] flex items-center justify-center transition-colors">
-              <Globe className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+            {/* Notifications */}
+            <button
+              className="relative w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+              style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)' }}
+            >
+              <Bell className="w-4 h-4" style={{ color: 'var(--text-3)' }} />
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full" style={{ background: 'var(--brand)' }} />
             </button>
           </div>
         </header>
