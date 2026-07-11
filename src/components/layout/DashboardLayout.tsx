@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
 import {
@@ -132,7 +132,9 @@ function Sidebar({ onNavClick }: { onNavClick?: () => void }) {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isDark, setIsDark]           = useState(false)
+  const [searchInput, setSearchInput] = useState('')
   const pathname = usePathname()
+  const router = useRouter()
 
   useEffect(() => {
     const saved = localStorage.getItem('theme')
@@ -158,8 +160,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           className="fixed inset-0 z-40 lg:hidden"
           style={{ background: 'rgba(16,19,26,0.6)', backdropFilter: 'blur(4px)' }}
           onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
         />
       )}
+
+      {/* Screen-reader-only sidebar toggle (always present) */}
+      <button
+        type="button"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-white focus:text-slate-900 focus:shadow-lg"
+        onClick={() => setSidebarOpen(true)}
+        aria-label="Open navigation menu"
+      >
+        Open menu
+      </button>
 
       {/* Sidebar */}
       <aside
@@ -170,11 +183,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
         style={{ background: 'var(--bg-card)', borderRight: '1px solid var(--border)' }}
+        aria-label="Primary navigation"
       >
         <button
           className="absolute top-3 right-3 lg:hidden p-1.5 rounded-lg transition-colors"
           style={{ color: 'var(--text-3)' }}
           onClick={() => setSidebarOpen(false)}
+          aria-label="Close navigation menu"
         >
           <X className="w-4 h-4" />
         </button>
@@ -193,17 +208,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             className="lg:hidden p-2 rounded-lg transition-colors"
             style={{ color: 'var(--text-3)' }}
             onClick={() => setSidebarOpen(true)}
+            aria-label="Open navigation menu"
           >
             <Menu className="w-5 h-5" />
           </button>
 
           {/* Search */}
           <div className="flex-1 max-w-sm">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-4)' }} />
+            <label htmlFor="global-search" className="sr-only">Search cases, clients, documents</label>
+            <form
+              className="relative"
+              onSubmit={e => {
+                e.preventDefault()
+                const q = searchInput.trim()
+                if (q) router.push(`/cases?q=${encodeURIComponent(q)}`)
+              }}
+            >
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-4)' }} aria-hidden="true" />
               <input
-                type="text"
+                id="global-search"
+                type="search"
+                role="searchbox"
                 placeholder="Search cases, clients…"
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
                 className="w-full rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none transition-all"
                 style={{
                   background: 'var(--bg-subtle)',
@@ -220,7 +248,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   ;(e.target as HTMLElement).style.boxShadow = 'none'
                 }}
               />
-            </div>
+            </form>
           </div>
 
           <div className="flex items-center gap-2 ml-auto">
@@ -229,11 +257,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               onClick={toggleTheme}
               className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
               style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)' }}
-              title={isDark ? 'Light mode' : 'Dark mode'}
+              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-pressed={isDark}
             >
               {isDark
-                ? <Sun  className="w-4 h-4" style={{ color: '#FBBF24' }} />
-                : <Moon className="w-4 h-4" style={{ color: 'var(--text-3)' }} />
+                ? <Sun  className="w-4 h-4" style={{ color: '#FBBF24' }} aria-hidden="true" />
+                : <Moon className="w-4 h-4" style={{ color: 'var(--text-3)' }} aria-hidden="true" />
               }
             </button>
 
@@ -241,15 +271,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button
               className="relative w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
               style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)' }}
+              aria-label="Notifications"
+              aria-haspopup="dialog"
             >
-              <Bell className="w-4 h-4" style={{ color: 'var(--text-3)' }} />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full" style={{ background: 'var(--brand)' }} />
+              <Bell className="w-4 h-4" style={{ color: 'var(--text-3)' }} aria-hidden="true" />
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full" style={{ background: 'var(--brand)' }} aria-hidden="true" />
             </button>
           </div>
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        <main id="main-content" className="flex-1 overflow-y-auto p-4 md:p-6" tabIndex={-1}>
           {children}
         </main>
       </div>

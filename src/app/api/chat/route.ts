@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { z } from 'zod'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { v4 as uuidv4 } from 'uuid'
@@ -8,27 +9,47 @@ import {
   WELCOME_MESSAGES, extractIntakeFromMessages,
   type LanguageCode,
 } from '@/lib/chatEngine'
+import { rateLimit, rateLimitHeaders } from '@/lib/rateLimit'
+import { sanitizeUserText } from '@/lib/sanitize'
 import type { ChatMessage, IntakeData } from '@/types/prisma'
 
 const ANTHROPIC_API = 'https://api.anthropic.com/v1/messages'
 
+const SUPPORTED_LANG_CODES = Object.keys(SUPPORTED_LANGUAGES) as [LanguageCode, ...LanguageCode[]]
+
+const chatSchema = z.object({
+  sessionId: z.string().uuid().optional(),
+  message:   z.string().min(1, 'Message is required').max(8_000, 'Message too long (max 8000 chars)'),
+  language:  z.enum(SUPPORTED_LANG_CODES).default('en'),
+  caseId:    z.string().uuid().optional(),
+})
+
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    const body    = await req.json()
-    const {
-      sessionId,
-      message,
-      language = 'en',
-      caseId,
-    }: {
-      sessionId?: string
-      message: string
-      language: LanguageCode
-      caseId?: string
-    } = body
 
-    if (!message?.trim()) {
+    // ── Rate limit: 30 messages / 5 min per IP (anonymous OR authenticated) ──
+    const userId = session?.user?.id
+    const rlKey = userId ? `chat:${userId}` : 'chat:anon'
+    const rl = rateLimit({ req, key: rlKey, limit: 30, windowMs: 5 * 60 * 1000 })
+    if (rl.limited) {
+      return NextResponse.json(
+        { error: 'Too many messages. Please slow down.' },
+        { status: 429, headers: rateLimitHeaders(rl) }
+      )
+    }
+
+    const raw = await req.json().catch(() => ({}))
+    const parsed = chatSchema.safeParse(raw)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.errors[0]?.message ?? 'Invalid request' },
+        { status: 400 }
+      )
+    }
+    const { sessionId, language, caseId } = parsed.data
+    const message = sanitizeUserText(parsed.data.message)
+    if (!message.trim()) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
     }
 
@@ -37,10 +58,14 @@ export async function POST(req: NextRequest) {
       ? await prisma.chatSession.findUnique({ where: { id: sessionId } })
       : null
 
+    if (session_rec && userId && session_rec.userId && session_rec.userId !== userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     if (!session_rec) {
       session_rec = await prisma.chatSession.create({
         data: {
-          userId:     session?.user?.id ?? null,
+          userId:     userId ?? null,
           caseId:     caseId ?? null,
           language,
           messages:   '[]',
@@ -66,6 +91,7 @@ export async function POST(req: NextRequest) {
     // ── Build AI conversation history ────────────────────────
     const apiKey      = process.env.ANTHROPIC_API_KEY
     let assistantText = ''
+    let aiSource: 'ai' | 'demo' = 'demo'
 
     if (apiKey) {
       // Real AI response
@@ -95,6 +121,7 @@ export async function POST(req: NextRequest) {
       if (res.ok) {
         const data      = await res.json()
         assistantText = data.content?.[0]?.text?.trim() ?? ''
+        aiSource = 'ai'
       } else {
         assistantText = generateDemoResponse(message, language as LanguageCode, intakeData)
       }
@@ -135,18 +162,32 @@ export async function POST(req: NextRequest) {
       sessionId: session_rec.id,
       message:   assistantMsg,
       intakeData: updatedIntake,
+      source:    aiSource,
     })
   } catch (err: any) {
     console.error('Chat error:', err)
-    return NextResponse.json({ error: err.message ?? 'Chat failed' }, { status: 500 })
+    return NextResponse.json({ error: 'Chat failed' }, { status: 500 })
   }
 }
 
 // ── Start new session (GET welcome message) ──────────────────
 export async function GET(req: NextRequest) {
+  // Rate limit session creation too
+  const rl = rateLimit({ req, key: 'chat-init', limit: 20, windowMs: 5 * 60 * 1000 })
+  if (rl.limited) {
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429, headers: rateLimitHeaders(rl) }
+    )
+  }
+
   const language = (req.nextUrl.searchParams.get('language') ?? 'en') as LanguageCode
+  if (!SUPPORTED_LANGUAGES[language]) {
+    return NextResponse.json({ error: 'Unsupported language' }, { status: 400 })
+  }
   const session  = await getServerSession(authOptions)
   const caseId   = req.nextUrl.searchParams.get('caseId')
+  const validCaseId = caseId && /^[0-9a-f-]{36}$/i.test(caseId) ? caseId : null
 
   const welcome: ChatMessage = {
     id:        uuidv4(),
@@ -160,7 +201,7 @@ export async function GET(req: NextRequest) {
   const chatSession = await prisma.chatSession.create({
     data: {
       userId:     session?.user?.id ?? null,
-      caseId:     caseId ?? null,
+      caseId:     validCaseId,
       language,
       messages:   JSON.stringify([welcome]),
       intakeData: '{}',

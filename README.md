@@ -39,17 +39,15 @@ Set these in your Vercel project → Settings → Environment Variables:
 
 ### 3. File Storage (Vercel Blob)
 
-Documents uploaded by users are stored in Vercel Blob. Without this, files are lost on cold starts.
+Documents uploaded by users are stored in Vercel Blob. Without `BLOB_READ_WRITE_TOKEN`, uploads will fail.
 
 ```bash
-# Install the blob SDK
-npm i @vercel/blob
-
-# Link blob storage to your project
+# Blob SDK is already in package.json — no install needed.
+# Link blob storage to your project:
 npx vercel blob add
 ```
 
-Then in `src/app/api/documents/upload/route.ts`, uncomment the Vercel Blob section.
+The upload route (`src/app/api/documents/upload/route.ts`) calls `put()` unconditionally, so the token is required in both dev and production.
 
 ### 4. Custom Domain
 
@@ -87,8 +85,11 @@ Open [http://localhost:3000](http://localhost:3000). Login with `demo@immigai.co
 ## 🏗️ Tech Stack
 
 - **Framework**: Next.js 14 (App Router)
-- **Auth**: NextAuth.js (JWT)
-- **Database**: PostgreSQL via Prisma
-- **AI**: Anthropic Claude (claude-sonnet-4)
-- **Storage**: Vercel Blob (production) / `/tmp` (dev)
-- **Styling**: Tailwind CSS + Radix UI
+- **Auth**: NextAuth.js (JWT) + bcrypt + signup/password change
+- **Database**: PostgreSQL via Prisma (indexed on hot paths)
+- **AI**: Anthropic Claude (claude-sonnet-4-20250514 for chat/RFE/forms, claude-haiku-4-5 for regulatory summaries)
+- **Storage**: Vercel Blob (production) — `BLOB_READ_WRITE_TOKEN` required
+- **Notifications**: In-app + email (SMTP) — preferences persisted per user, deadline reminders via daily cron
+- **Security**: CSP, HSTS, X-Frame-Options, rate limiting on login/chat/upload/RFE/signup, zod validation, input sanitization
+- **SEO**: sitemap.xml, robots.txt, per-route metadata, OG tags, JSON-LD, server-rendered landing
+- **Styling**: Tailwind CSS + Radix UI, full dark mode, ARIA labels, skip-to-content, reduced-motion support

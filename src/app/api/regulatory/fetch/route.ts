@@ -16,6 +16,7 @@ import {
   generateAiSummary,
   isNewItem,
 } from '@/lib/regulatoryEngine'
+import { scanDeadlines } from '@/lib/deadlineScanner'
 
 // Vercel Cron auth — set CRON_SECRET in your Vercel environment variables
 const CRON_SECRET = process.env.CRON_SECRET
@@ -113,7 +114,15 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ success: true, ...results })
+  // ── Also scan deadlines and fire reminders ────────────
+  let deadlineResults: { scanned: number; notified: number } | { error: string } = { scanned: 0, notified: 0 }
+  try {
+    deadlineResults = await scanDeadlines()
+  } catch (err: any) {
+    deadlineResults = { error: err.message }
+  }
+
+  return NextResponse.json({ success: true, ...results, deadlines: deadlineResults })
 }
 
 // GET — manual trigger from the UI "Refresh" button

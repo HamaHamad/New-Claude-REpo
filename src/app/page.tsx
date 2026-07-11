@@ -1,18 +1,18 @@
-'use client'
 import Link from 'next/link'
-import { useState } from 'react'
+import type { Metadata } from 'next'
 import {
   ArrowRight, Brain, FileText, BarChart3, Shield, Users,
   CheckCircle2, Zap, Clock, Star, Scale, Workflow,
-  ChevronRight, Play, Menu, X, Globe, Bell, Lock,
+  ChevronRight, Play, Globe, Bell, Lock,
   Building2, TrendingUp, MessageSquare,
 } from 'lucide-react'
+import { LandingNav } from '@/components/landing/LandingNav'
 
-const NAV_LINKS = [
-  { label: 'Features', href: '#features' },
-  { label: 'Platform', href: '#platform' },
-  { label: 'Pricing',  href: '#pricing'  },
-]
+export const metadata: Metadata = {
+  title: 'ImmigAI — AI-Powered Immigration Case Management Platform',
+  description: 'End-to-end immigration case management for law firms and corporate teams. AI-driven document automation, predictive analytics, compliance monitoring, and multilingual client intake.',
+  alternates: { canonical: '/' },
+}
 
 const STATS = [
   { value: '94%', label: 'Approval Rate',    sub: 'vs 78% industry avg' },
@@ -97,59 +97,35 @@ const TESTIMONIALS = [
 ]
 
 export default function LandingPage() {
-  const [mobileOpen, setMobileOpen] = useState(false)
+  // JSON-LD structured data for SEO
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'ImmigAI',
+    applicationCategory: 'LegalApplication',
+    operatingSystem: 'Web',
+    description: 'AI-powered immigration case management platform for law firms and corporate immigration teams.',
+    offers: {
+      '@type': 'Offer',
+      price: '299',
+      priceCurrency: 'USD',
+    },
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: '4.8',
+      ratingCount: '127',
+    },
+  }
 
   return (
     <div style={{ background: 'var(--bg)', color: 'var(--text-1)', fontFamily: 'var(--font-body)' }} className="min-h-screen overflow-x-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
 
-      {/* ── Nav ─────────────────────────────────────────────── */}
-      <nav
-        className="fixed top-0 w-full z-50 backdrop-blur-xl"
-        style={{ background: 'var(--bg-overlay)', borderBottom: '1px solid var(--border)' }}
-      >
-        <div className="max-w-7xl mx-auto px-5 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--brand)' }}>
-              <Scale className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-display font-bold text-lg" style={{ color: 'var(--text-1)', letterSpacing: '-0.03em' }}>
-              ImmigAI
-            </span>
-          </Link>
-
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-8">
-            {NAV_LINKS.map(l => (
-              <a key={l.label} href={l.href} className="nav-link">{l.label}</a>
-            ))}
-          </div>
-
-          <div className="hidden md:flex items-center gap-3">
-            <Link href="/login" className="btn-ghost" style={{ color: 'var(--text-2)' }}>Sign In</Link>
-            <Link href="/dashboard" className="btn-primary">
-              Get Started <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-
-          {/* Mobile hamburger */}
-          <button className="md:hidden p-2" onClick={() => setMobileOpen(!mobileOpen)} style={{ color: 'var(--text-2)' }}>
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-        </div>
-
-        {/* Mobile menu */}
-        {mobileOpen && (
-          <div className="md:hidden px-5 pb-5 space-y-2" style={{ borderTop: '1px solid var(--border)', background: 'var(--bg-card)' }}>
-            {NAV_LINKS.map(l => (
-              <a key={l.label} href={l.href} className="block py-2.5 nav-link" onClick={() => setMobileOpen(false)}>{l.label}</a>
-            ))}
-            <div className="pt-3 flex flex-col gap-2" style={{ borderTop: '1px solid var(--border)' }}>
-              <Link href="/login" className="btn-secondary text-center">Sign In</Link>
-              <Link href="/dashboard" className="btn-primary justify-center">Get Started</Link>
-            </div>
-          </div>
-        )}
-      </nav>
+      {/* ── Nav (client component for mobile menu state) ──── */}
+      <LandingNav />
 
       {/* ── Hero ────────────────────────────────────────────── */}
       <section className="relative pt-36 pb-28 px-5 overflow-hidden grid-texture">
@@ -191,10 +167,12 @@ export default function LandingPage() {
               Start Free 14-Day Trial
               <ArrowRight className="w-4 h-4" />
             </Link>
-            <button
+            <a
               className="flex items-center gap-3 text-sm font-semibold transition-all hover:gap-4"
               style={{ color: 'var(--text-2)' }}
-              onClick={() => window.open('https://www.youtube.com', '_blank')}
+              href="https://www.youtube.com"
+              target="_blank"
+              rel="noopener noreferrer"
             >
               <span
                 className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
@@ -203,7 +181,7 @@ export default function LandingPage() {
                 <Play className="w-3.5 h-3.5 ml-0.5" style={{ color: 'var(--brand)' }} />
               </span>
               Watch Demo
-            </button>
+            </a>
           </div>
 
           <p className="text-xs animate-fade-up delay-300" style={{ color: 'var(--text-4)' }}>
@@ -556,13 +534,13 @@ export default function LandingPage() {
               <Link href="/dashboard" className="btn-primary py-3 px-8 text-base">
                 Start Free Trial <ArrowRight className="w-4 h-4" />
               </Link>
-              <button
+              <a
                 className="btn-secondary py-3 px-8 text-base"
-                onClick={() => window.location.href = 'mailto:sales@immigai.com'}
+                href="mailto:sales@immigai.com"
               >
                 <MessageSquare className="w-4 h-4" />
                 Talk to Sales
-              </button>
+              </a>
             </div>
           </div>
         </div>

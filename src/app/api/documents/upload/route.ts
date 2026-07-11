@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid'
 import path from 'path'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { rateLimit, rateLimitHeaders } from '@/lib/rateLimit'
 
 async function requireCaseAccess(caseId: string, userId: string) {
   const c = await prisma.case.findUnique({
@@ -26,6 +27,15 @@ export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // ── Rate limit: 30 uploads / 10 min per user ──────────
+    const rl = rateLimit({ req, key: `upload:${session.user.id}`, limit: 30, windowMs: 10 * 60 * 1000 })
+    if (rl.limited) {
+      return NextResponse.json(
+        { error: 'Too many uploads. Please try again later.' },
+        { status: 429, headers: rateLimitHeaders(rl) }
+      )
     }
 
     const formData        = await req.formData()

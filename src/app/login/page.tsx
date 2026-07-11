@@ -168,6 +168,13 @@ function LoginForm() {
           </form>
         </div>
 
+        <p className="text-center text-xs mt-4" style={{ color: 'var(--text-3)' }}>
+          Don&apos;t have an account?{' '}
+          <Link href="/signup" className="font-semibold hover:underline" style={{ color: 'var(--brand)' }}>
+            Sign up free
+          </Link>
+        </p>
+
         <p className="text-center text-xs mt-6" style={{ color: 'var(--text-4)' }}>
           © {new Date().getFullYear()} ImmigAI, Inc. · All rights reserved.
         </p>

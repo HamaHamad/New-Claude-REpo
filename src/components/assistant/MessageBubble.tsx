@@ -101,11 +101,13 @@ export function MessageBubble({ message, isLatest, dir = 'ltr' }: MessageBubbleP
           {!isUser && (
             <button
               onClick={handleCopy}
-              className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-700 hover:text-slate-400"
+              className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-slate-700 hover:text-slate-400"
+              aria-label={copied ? 'Copied to clipboard' : 'Copy message to clipboard'}
+              aria-pressed={copied}
             >
               {copied
-                ? <Check className="w-3 h-3 text-emerald-400" />
-                : <Copy className="w-3 h-3" />
+                ? <Check className="w-3 h-3 text-emerald-400" aria-hidden="true" />
+                : <Copy className="w-3 h-3" aria-hidden="true" />
               }
             </button>
           )}
